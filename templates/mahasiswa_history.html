@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% set active = 'riwayat' %}
+{% block title %}Riwayat Absensi{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Mahasiswa</div>
+    <h1>Riwayat absensi</h1>
+    <div class="sub">
+      {% if mhs %}{{ mhs.nama }} · <span class="mono">{{ mhs.nim }}</span>{% endif %}
+    </div>
+  </div>
+  <a href="{{ url_for('scan') }}" class="btn primary">◉ Absen sekarang</a>
+</div>
+
+<div class="grid stats" style="margin-bottom:20px">
+  <div class="card stat teal">
+    <div class="n">{{ data|length }}</div>
+    <div class="k">Total kehadiran tercatat</div>
+    <div class="bar"><i style="width:100%"></i></div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  {% if data %}
+  <table>
+    <thead><tr><th>Tanggal</th><th>Waktu</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in data %}
+      <tr>
+        <td>{{ r.tanggal.strftime('%A, %d %B %Y') if r.tanggal.strftime else r.tanggal }}</td>
+        <td class="mono">{{ r.waktu }}</td>
+        <td><span class="badge"><span class="dot"></span> Hadir</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <div class="big">Belum ada riwayat</div>
+    Kehadiranmu akan muncul di sini setelah wajahmu dikenali kamera.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

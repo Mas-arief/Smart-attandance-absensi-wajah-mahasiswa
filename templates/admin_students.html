@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set active = 'mhs' %}
+{% block title %}Mahasiswa · Admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Data</div>
+    <h1>Mahasiswa</h1>
+    <div class="sub">{{ mahasiswa|length }} mahasiswa terdaftar.</div>
+  </div>
+  <a href="{{ url_for('admin_add_student') }}" class="btn primary">＋ Tambah mahasiswa</a>
+</div>
+
+<div class="table-wrap">
+  {% if mahasiswa %}
+  <table>
+    <thead><tr><th>NIM</th><th>Nama</th><th>Foto</th><th>Terdaftar</th><th></th></tr></thead>
+    <tbody>
+      {% for m in mahasiswa %}
+      <tr>
+        <td class="mono">{{ m.nim }}</td>
+        <td>{{ m.nama }}</td>
+        <td class="mono" style="color:var(--muted)">{{ m.foto }}</td>
+        <td style="color:var(--muted)">{{ m.created_at.strftime('%d %b %Y') if m.created_at else '-' }}</td>
+        <td style="text-align:right">
+          <form method="post" action="{{ url_for('admin_delete_student', nim=m.nim) }}"
+                onsubmit="return confirm('Hapus {{ m.nama }}? Data absensinya ikut terhapus.')">
+            <button class="btn sm ghost-danger" type="submit">Hapus</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <div class="big">Belum ada mahasiswa</div>
+    Tambahkan mahasiswa beserta fotonya agar bisa dikenali kamera.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set active = 'dash' %}
+{% block title %}Dashboard · Admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Ringkasan</div>
+    <h1>Dashboard</h1>
+    <div class="sub">Pantauan kehadiran hari ini.</div>
+  </div>
+  <a href="{{ url_for('scan') }}" class="btn primary">◉ Mulai Sesi Absensi</a>
+</div>
+
+{% set total = stats.total_mahasiswa or 1 %}
+<div class="grid stats">
+  <div class="card stat">
+    <div class="n">{{ stats.total_mahasiswa }}</div>
+    <div class="k">Total mahasiswa terdaftar</div>
+    <div class="bar"><i style="width:100%"></i></div>
+  </div>
+  <div class="card stat teal">
+    <div class="n">{{ stats.hadir_hari_ini }}</div>
+    <div class="k">Hadir hari ini</div>
+    <div class="bar"><i style="width:{{ (stats.hadir_hari_ini / total * 100)|round(0,'floor') }}%"></i></div>
+  </div>
+  <div class="card stat amber">
+    <div class="n">{{ stats.belum_hadir }}</div>
+    <div class="k">Belum hadir</div>
+    <div class="bar"><i style="width:{{ (stats.belum_hadir / total * 100)|round(0,'floor') }}%"></i></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <h3 style="margin:0 0 6px">Langkah cepat</h3>
+  <p class="sub" style="margin:0 0 16px">Kelola data dan rekap dari sini.</p>
+  <div class="toolbar">
+    <a href="{{ url_for('admin_add_student') }}" class="btn">＋ Tambah mahasiswa</a>
+    <a href="{{ url_for('admin_students') }}" class="btn">Kelola mahasiswa</a>
+    <a href="{{ url_for('admin_attendance') }}" class="btn">Lihat rekap real-time</a>
+  </div>
+</div>
+{% endblock %}

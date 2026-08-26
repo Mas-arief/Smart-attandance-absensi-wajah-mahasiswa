@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk · Absensi Wajah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="login-wrap">
+  <section class="login-art">
+    <div class="glow"></div>
+    <div>
+      <div class="eyebrow">Sistem Presensi Kampus</div>
+      <h2>Kehadiran diverifikasi dari wajah, bukan tanda tangan.</h2>
+      <div class="frame"><div class="line"></div></div>
+    </div>
+    <div class="foot">Deteksi YOLOv8 · Pengenalan face-recognition · Real-time</div>
+  </section>
+
+  <section class="login-form">
+    <div class="login-card">
+      <h1>Masuk</h1>
+      <p class="sub">Gunakan akun admin atau NIM mahasiswa.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('login') }}">
+        <div class="field">
+          <label for="username">Username / NIM</label>
+          <input id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn primary" type="submit">Masuk</button>
+      </form>
+
+      <p class="cred-note">Admin default: <code>admin</code> / <code>admin123</code></p>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% set active = 'mhs' %}
+{% block title %}Tambah Mahasiswa · Admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Data</div>
+    <h1>Tambah mahasiswa</h1>
+    <div class="sub">Foto wajah dipakai untuk pengenalan. Akun login dibuat otomatis.</div>
+  </div>
+  <a href="{{ url_for('admin_students') }}" class="btn">← Kembali</a>
+</div>
+
+<div class="card form-card">
+  <form method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label for="nama">Nama lengkap</label>
+      <input id="nama" name="nama" required>
+    </div>
+    <div class="field">
+      <label for="nim">NIM</label>
+      <input id="nim" name="nim" class="mono" required>
+    </div>
+    <div class="field">
+      <label for="foto">Foto wajah (satu wajah jelas, menghadap kamera)</label>
+      <input id="foto" name="foto" type="file" accept="image/*" required>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" type="submit">Simpan mahasiswa</button>
+      <span class="sub">Login default → username: NIM, password: NIM</span>
+    </div>
+  </form>
+</div>
+{% endblock %}

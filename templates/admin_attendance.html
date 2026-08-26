@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set active = 'rekap' %}
+{% block title %}Rekap Absensi · Admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Real-time · {{ today }}</div>
+    <h1>Rekap absensi</h1>
+    <div class="sub">Tabel diperbarui otomatis setiap 3 detik. <span id="live-dot" class="badge"><span class="dot"></span> live</span></div>
+  </div>
+  <div class="toolbar">
+    <a href="{{ url_for('export_csv', scope='today') }}" class="btn">⬇ CSV (hari ini)</a>
+    <a href="{{ url_for('export_xlsx', scope='all') }}" class="btn dark">⬇ Excel (semua)</a>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Waktu</th><th>NIM</th><th>Nama</th><th>Status</th></tr></thead>
+    <tbody id="rows">
+      <tr><td colspan="4" class="empty">Memuat data…</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function refresh(){
+  try{
+    const res = await fetch("{{ url_for('api_attendance_today') }}");
+    const data = await res.json();
+    const tb = document.getElementById('rows');
+    if(!data.length){
+      tb.innerHTML = '<tr><td colspan="4" class="empty"><div class="big">Belum ada yang absen</div>Buka Sesi Absensi untuk mulai memindai wajah.</td></tr>';
+      return;
+    }
+    tb.innerHTML = data.map(r => `
+      <tr>
+        <td class="mono">${r.waktu}</td>
+        <td class="mono">${r.nim}</td>
+        <td>${r.nama}</td>
+        <td><span class="badge"><span class="dot"></span> Hadir</span></td>
+      </tr>`).join('');
+  }catch(e){ /* diamkan; coba lagi tick berikutnya */ }
+}
+refresh();
+setInterval(refresh, 3000);
+</script>
+{% endblock %}

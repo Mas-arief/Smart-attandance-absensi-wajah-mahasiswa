@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% set active = 'scan' %}
+{% block title %}Sesi Absensi{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Pemindaian langsung</div>
+    <h1>Sesi absensi</h1>
+    <div class="sub">Hadapkan wajah ke kamera. Kehadiran tercatat otomatis saat dikenali.</div>
+  </div>
+</div>
+
+<div class="scan-layout">
+  <div class="scanner brackets">
+    <span class="b1"></span><span class="b2"></span>
+    <div class="line"></div>
+    <img id="camfeed" src="{{ url_for('video') }}" alt="Kamera langsung">
+  </div>
+
+  <div>
+    <div id="chip" class="status-chip">
+      <span class="pulse"></span>
+      <div>
+        <div class="who" id="who">Menunggu wajah…</div>
+        <div class="meta" id="meta">Kamera aktif, mencari wajah terdaftar.</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <b>Tips agar cepat dikenali:</b><br>
+      · Pastikan wajah terang & tidak membelakangi cahaya.<br>
+      · Lepas masker / benda yang menutupi wajah.<br>
+      · Satu orang cukup absen sekali per hari.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let lastNim = null;
+async function poll(){
+  try{
+    const res = await fetch("{{ url_for('api_status') }}");
+    const s = await res.json();
+    const chip = document.getElementById('chip');
+    if(s.nim){
+      chip.classList.add('on');
+      document.getElementById('who').textContent = s.nama;
+      document.getElementById('meta').textContent =
+        'NIM ' + s.nim + (s.baru && s.nim!==lastNim ? ' · kehadiran tercatat ✓' : ' · sudah tercatat');
+      lastNim = s.nim;
+    }
+  }catch(e){}
+}
+setInterval(poll, 1500);
+
+// Kalau koneksi stream MJPEG putus (server reload, jaringan sempat drop, dst),
+// img akan berhenti update tanpa event apa pun sampai koneksi ditutup lalu
+// memicu 'error' -- saat itu sambungkan ulang otomatis lewat src baru.
+const cam = document.getElementById('camfeed');
+const camSrc = cam.src;
+cam.addEventListener('error', () => {
+  setTimeout(() => { cam.src = camSrc + '?t=' + Date.now(); }, 1500);
+});
+</script>
+{% endblock %}
