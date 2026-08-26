@@ -22,8 +22,11 @@
       <input id="nim" name="nim" class="mono" required>
     </div>
     <div class="field">
-      <label for="foto">Foto wajah (satu wajah jelas, menghadap kamera)</label>
-      <input id="foto" name="foto" type="file" accept="image/*" required>
+      <label for="foto">Foto wajah (bisa pilih beberapa sekaligus)</label>
+      <input id="foto" name="foto" type="file" accept="image/*" multiple required>
+      <span class="sub">Sertakan minimal foto depan; tambahkan juga foto agak
+        menoleh kiri &amp; kanan supaya tetap dikenali walau wajah tidak lurus
+        ke kamera.</span>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="submit">Simpan mahasiswa</button>

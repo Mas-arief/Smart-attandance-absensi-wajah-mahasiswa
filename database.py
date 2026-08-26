@@ -83,6 +83,16 @@ def add_mahasiswa(nim, nama, foto, default_password=None):
     conn.close()
 
 
+def update_foto_count(nim, count):
+    """Perbarui ringkasan jumlah foto (kolom foto) setelah tambah foto baru."""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("UPDATE mahasiswa SET foto=%s WHERE nim=%s", (f"{count} foto", nim))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 def list_mahasiswa():
     conn = get_conn()
     cur = conn.cursor(dictionary=True)

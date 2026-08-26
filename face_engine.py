@@ -9,6 +9,7 @@ Semua di-load MALAS (lazy): model & encoding baru dimuat saat kamera pertama
 kali dipakai, supaya halaman login tetap ringan.
 """
 import os
+import shutil
 import threading
 import time
 import cv2
@@ -49,43 +50,84 @@ def _ensure_detector():
     return _detector
 
 
+def _encode_face(img):
+    """Cari wajah pakai YOLOv8 (lebih tahan wajah miring/menoleh daripada
+    detektor bawaan dlib) lalu hitung encoding-nya di lokasi itu. Dipakai saat
+    enrollment (add_known_face / load_known_faces) supaya foto menoleh kiri/kanan
+    ikut terdeteksi -- bukan cuma foto depan seperti kalau pakai detektor dlib."""
+    detector = _ensure_detector()
+    faces = detector.detect(img)
+    if not faces:
+        return None
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    encs = face_recognition.face_encodings(rgb, known_face_locations=[faces[0]])
+    return encs[0] if encs else None
+
+
+def _migrate_legacy_photos():
+    """Skema lama: 1 foto rata di Train/Nama_NIM.ext per orang. Skema baru:
+    Train/<NIM>/*.ext (boleh banyak foto -- depan, miring kiri, miring kanan)
+    supaya pengenalan tidak cuma andal untuk wajah frontal. Pindahkan foto lama
+    yang masih rata ke folder barunya, sekali jalan, biar data lama tetap kepakai."""
+    for fname in list(os.listdir(TRAIN_DIR)):
+        path = os.path.join(TRAIN_DIR, fname)
+        if not os.path.isfile(path) or fname.startswith("."):
+            continue
+        base, _, ext = fname.rpartition(".")
+        if not base or "_" not in base:
+            continue
+        _, _, nim = base.partition("_")        # nama_nim -> nim
+        folder = os.path.join(TRAIN_DIR, nim)
+        os.makedirs(folder, exist_ok=True)
+        target = os.path.join(folder, f"1.{ext}")
+        if os.path.exists(target):
+            os.remove(path)
+        else:
+            shutil.move(path, target)
+
+
 def load_known_faces():
-    """Baca semua foto di folder Train/ (format nama_nim.ext) lalu hitung encoding."""
+    """Baca semua foto di Train/<NIM>/*.ext (bisa lebih dari satu per mahasiswa)
+    dan hitung encoding tiap foto. Nama diambil dari database, bukan dari
+    nama file, supaya folder cukup diberi nama NIM saja."""
     known_encodings.clear()
     known_nims.clear()
     known_names.clear()
     if not os.path.isdir(TRAIN_DIR):
         return
-    for fname in os.listdir(TRAIN_DIR):
-        if fname.startswith("."):
+    _migrate_legacy_photos()
+
+    nama_by_nim = {m["nim"]: m["nama"] for m in database.list_mahasiswa()}
+    for nim in os.listdir(TRAIN_DIR):
+        folder = os.path.join(TRAIN_DIR, nim)
+        if not os.path.isdir(folder) or nim not in nama_by_nim:
             continue
-        path = os.path.join(TRAIN_DIR, fname)
-        img = cv2.imread(path)
-        if img is None:
-            continue
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        encs = face_recognition.face_encodings(rgb)
-        if not encs:
-            print(f"!! Wajah tidak terdeteksi di {fname}, dilewati.")
-            continue
-        base = fname.rsplit(".", 1)[0]        # buang ekstensi
-        nama, _, nim = base.partition("_")     # nama_nim
-        known_encodings.append(encs[0])
-        known_names.append(nama)
-        known_nims.append(nim)
-    print(f">> {len(known_encodings)} wajah mahasiswa dimuat.")
+        nama = nama_by_nim[nim]
+        for fname in os.listdir(folder):
+            path = os.path.join(folder, fname)
+            img = cv2.imread(path)
+            if img is None:
+                continue
+            enc = _encode_face(img)
+            if enc is None:
+                print(f"!! Wajah tidak terdeteksi di {nim}/{fname}, dilewati.")
+                continue
+            known_encodings.append(enc)
+            known_names.append(nama)
+            known_nims.append(nim)
+    print(f">> {len(known_encodings)} foto wajah dimuat untuk {len(set(known_nims))} mahasiswa.")
 
 
 def add_known_face(file_path, nim, nama):
-    """Tambah satu wajah baru ke memori (dipanggil admin saat daftar mahasiswa)."""
+    """Tambah satu foto wajah ke memori (dipanggil admin saat daftar mahasiswa --
+    boleh dipanggil beberapa kali per NIM untuk menambah sudut wajah lain)."""
     img = cv2.imread(file_path)
     if img is None:
         raise ValueError("File gambar tidak terbaca.")
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    encs = face_recognition.face_encodings(rgb)
-    if not encs:
+    enc = _encode_face(img)
+    if enc is None:
         raise ValueError("Wajah tidak terdeteksi pada foto.")
-    known_encodings.append(encs[0])
+    known_encodings.append(enc)
     known_names.append(nama)
     known_nims.append(nim)
 

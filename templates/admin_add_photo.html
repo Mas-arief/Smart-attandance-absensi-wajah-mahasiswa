@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% set active = 'mhs' %}
+{% block title %}Tambah Foto · {{ mhs.nama }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Data</div>
+    <h1>Tambah foto — {{ mhs.nama }}</h1>
+    <div class="sub">NIM {{ mhs.nim }} · foto ditambahkan, bukan menggantikan yang sudah ada.</div>
+  </div>
+  <a href="{{ url_for('admin_students') }}" class="btn">← Kembali</a>
+</div>
+
+<div class="card form-card">
+  <form method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label for="foto">Foto wajah baru (bisa pilih beberapa sekaligus)</label>
+      <input id="foto" name="foto" type="file" accept="image/*" multiple required>
+      <span class="sub">Tambahkan foto agak menoleh kiri &amp; kanan supaya
+        {{ mhs.nama }} tetap dikenali walau wajah tidak lurus ke kamera.</span>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" type="submit">Tambahkan foto</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

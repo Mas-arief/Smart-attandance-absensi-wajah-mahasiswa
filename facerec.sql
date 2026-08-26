@@ -11,7 +11,7 @@ USE facerec;
 CREATE TABLE IF NOT EXISTS mahasiswa (
     nim         VARCHAR(30)  PRIMARY KEY,
     nama        VARCHAR(100) NOT NULL,
-    foto        VARCHAR(255),               -- nama file foto di folder Train/
+    foto        VARCHAR(255),               -- ringkasan tampilan (mis. "3 foto"); file aslinya ada di Train/<nim>/
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

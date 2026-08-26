@@ -8,6 +8,7 @@ Role:
 import os
 import io
 import csv
+import shutil
 from functools import wraps
 from datetime import datetime
 
@@ -130,37 +131,96 @@ def admin_add_student():
     if request.method == "POST":
         nama = request.form.get("nama", "").strip()
         nim = request.form.get("nim", "").strip()
-        file = request.files.get("foto")
-        if not (nama and nim and file and file.filename):
-            flash("Nama, NIM, dan foto wajib diisi.", "error")
+        files = [f for f in request.files.getlist("foto") if f and f.filename]
+        if not (nama and nim and files):
+            flash("Nama, NIM, dan minimal satu foto wajib diisi.", "error")
             return redirect(url_for("admin_add_student"))
 
-        ext = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
-        stfilename = f"{secure_filename(nama)}_{secure_filename(nim)}.{ext}"
-        path = os.path.join(TRAIN_DIR, stfilename)
-        file.save(path)
+        # 1 folder per NIM, boleh diisi beberapa foto (depan, miring kiri/kanan)
+        # supaya pengenalan tetap kebaca saat wajah tidak lurus ke kamera.
+        folder = os.path.join(TRAIN_DIR, secure_filename(nim))
+        os.makedirs(folder, exist_ok=True)
+
+        saved_paths = []
+        for i, file in enumerate(files, start=1):
+            ext = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
+            path = os.path.join(folder, f"{i}.{ext}")
+            file.save(path)
+            saved_paths.append(path)
+
+        added = 0
+        for path in saved_paths:
+            try:
+                face_engine.add_known_face(path, nim, nama)   # cek wajah + encoding
+                added += 1
+            except ValueError:
+                pass   # foto ini wajahnya tidak kedeteksi -- lewati, foto lain tetap dipakai
+
+        if added == 0:
+            shutil.rmtree(folder, ignore_errors=True)
+            flash("Wajah tidak terdeteksi pada foto manapun yang diunggah.", "error")
+            return redirect(url_for("admin_add_student"))
+
         try:
-            face_engine.add_known_face(path, nim, nama)     # cek wajah + encoding
-            database.add_mahasiswa(nim, nama, stfilename)   # simpan ke DB + buat akun
-            flash(f"Mahasiswa {nama} ({nim}) ditambahkan. "
+            database.add_mahasiswa(nim, nama, f"{added} foto")   # simpan ke DB + buat akun
+            flash(f"Mahasiswa {nama} ({nim}) ditambahkan ({added}/{len(files)} foto terpakai). "
                   f"Login: {nim} / {nim}", "ok")
             return redirect(url_for("admin_students"))
         except Exception as e:
-            if os.path.exists(path):
-                os.remove(path)
+            shutil.rmtree(folder, ignore_errors=True)
+            face_engine.load_known_faces()   # buang encoding yang telanjur masuk memori
             flash(f"Gagal menambah mahasiswa: {e}", "error")
             return redirect(url_for("admin_add_student"))
     return render_template("admin_add_student.html")
 
 
+@app.route("/admin/mahasiswa/<nim>/foto", methods=["GET", "POST"])
+@login_required("admin")
+def admin_add_photo(nim):
+    """Tambah foto sudut wajah lain ke mahasiswa yang sudah terdaftar,
+    tanpa hapus data & riwayat absensinya."""
+    mhs = database.get_mahasiswa(nim)
+    if not mhs:
+        flash("Mahasiswa tidak ditemukan.", "error")
+        return redirect(url_for("admin_students"))
+
+    if request.method == "POST":
+        files = [f for f in request.files.getlist("foto") if f and f.filename]
+        if not files:
+            flash("Pilih minimal satu foto.", "error")
+            return redirect(url_for("admin_add_photo", nim=nim))
+
+        folder = os.path.join(TRAIN_DIR, secure_filename(nim))
+        os.makedirs(folder, exist_ok=True)
+        existing = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+        next_i = len(existing) + 1
+
+        added = 0
+        for i, file in enumerate(files, start=next_i):
+            ext = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
+            path = os.path.join(folder, f"{i}.{ext}")
+            file.save(path)
+            try:
+                face_engine.add_known_face(path, nim, mhs["nama"])
+                added += 1
+            except ValueError:
+                pass   # foto ini wajahnya tidak kedeteksi -- tetap disimpan, dilewati saat encoding
+
+        total = len([f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))])
+        database.update_foto_count(nim, total)
+        flash(f"{added}/{len(files)} foto baru ditambahkan untuk {mhs['nama']}.", "ok")
+        return redirect(url_for("admin_students"))
+
+    return render_template("admin_add_photo.html", mhs=mhs)
+
+
 @app.route("/admin/mahasiswa/hapus/<nim>", methods=["POST"])
 @login_required("admin")
 def admin_delete_student(nim):
-    foto = database.delete_mahasiswa(nim)
-    if foto:
-        p = os.path.join(TRAIN_DIR, foto)
-        if os.path.exists(p):
-            os.remove(p)
+    database.delete_mahasiswa(nim)
+    folder = os.path.join(TRAIN_DIR, secure_filename(nim))
+    if os.path.isdir(folder):
+        shutil.rmtree(folder, ignore_errors=True)
     face_engine.load_known_faces()   # muat ulang memori encoding
     flash("Mahasiswa dihapus.", "ok")
     return redirect(url_for("admin_students"))
